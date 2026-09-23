@@ -114,4 +114,23 @@ const getCurrentUser = async (req, res) => {
     user: req.user,
   });
 }
-module.exports = { registerUser, loginUser, getCurrentUser };
+
+const logoutUser = (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      console.error("Logout error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Logout failed",
+      });
+    }
+
+    res.clearCookie("connect.sid");
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  });
+};
+
+module.exports = { registerUser, loginUser, getCurrentUser, logoutUser };
