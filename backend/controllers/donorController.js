@@ -71,4 +71,42 @@ const getMyDonorProfile = async (req, res) => {
   }
 };
 
-module.exports = { createDonorProfile, getMyDonorProfile };
+const updateDonorAvailability = async (req, res) => {
+  try {
+    const { isAvailable } = req.body;
+
+    if (typeof isAvailable !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isAvailable must be a boolean",
+      });
+    }
+
+    const donorProfile = await DonorProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      { isAvailable },
+      { new: true },
+    );
+
+    if (!donorProfile) {
+      return res.status(404).json({
+        success: false,
+        message: "Donor profile not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Donor availability updated successfully",
+    });
+  } catch (error) {
+    console.error("Update donor availability error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+module.exports = { createDonorProfile, getMyDonorProfile, updateDonorAvailability };
