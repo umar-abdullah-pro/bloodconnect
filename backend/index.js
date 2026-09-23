@@ -7,6 +7,7 @@ const MongoStore = require("connect-mongo").default;
 const connectDB = require("./config/database");
 const authRouter = require("./routes/authRouter");
 const donorRouter = require("./routes/donorRouter");
+const donationRouter = require("./routes/donationRouter");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use(
 
 app.use("/api/auth", authRouter);
 app.use("/api/donor", donorRouter);
+app.use("/api/donation", donationRouter);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
