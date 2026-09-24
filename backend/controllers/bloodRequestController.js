@@ -1,5 +1,7 @@
 const BloodRequest = require("../models/BloodRequest");
 
+const { findMatchingDonors } = require("../services/matchingService");
+
 const createBloodRequest = async (req, res) => {
   try {
     const { bloodGroup, units, latitude, longitude, urgency, requiredBy } =
@@ -65,4 +67,41 @@ const getMyBloodRequests = async (req, res) => {
   }
 };
 
-module.exports = { createBloodRequest, getMyBloodRequests };
+const getMatchingDonors = async (req, res) => {
+  try {
+    const bloodRequest = await BloodRequest.findOne({
+      _id: req.params.requestId,
+      requesterId: req.user._id,
+      status: "OPEN",
+    });
+
+    if (!bloodRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found",
+      });
+    }
+
+    const [longitude, latitude] = bloodRequest.location.coordinates;
+
+    const donors = await findMatchingDonors(
+      bloodRequest.bloodGroup,
+      latitude,
+      longitude
+    );
+
+    return res.status(200).json({
+      success: true,
+      donors,
+    });
+  } catch (error) {
+    console.error("Get matching donors error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+module.exports = { createBloodRequest, getMyBloodRequests, getMatchingDonors };
