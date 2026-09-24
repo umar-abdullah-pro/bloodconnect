@@ -29,7 +29,7 @@ const createContactRequest = async (req, res) => {
 
     // Verify donor exists and is available
     const donor = await DonorProfile.findOne({
-      userId: donorId,
+      _id: donorId,
       isAvailable: true,
     });
 
@@ -41,7 +41,7 @@ const createContactRequest = async (req, res) => {
     }
 
     // Prevent contacting yourself
-    if (donorId === req.user._id.toString()) {
+    if (donor.userId.toString() === req.user._id.toString()) {
       return res.status(400).json({
         success: false,
         message: "You cannot contact yourself",
@@ -65,7 +65,7 @@ const createContactRequest = async (req, res) => {
 
     await ContactRequest.create({
       requesterId: req.user._id,
-      donorId,
+      donorId: donor.userId,
       bloodRequestId,
     });
 

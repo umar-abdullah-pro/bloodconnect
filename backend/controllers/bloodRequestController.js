@@ -1,4 +1,5 @@
 const BloodRequest = require("../models/BloodRequest");
+const ContactRequest = require("../models/ContactRequest");
 
 const { findMatchingDonors } = require("../services/matchingService");
 
@@ -82,12 +83,27 @@ const getMatchingDonors = async (req, res) => {
       });
     }
 
+    // Check if blood request has expired
+    if (
+      bloodRequest.requiredBy &&
+      new Date(bloodRequest.requiredBy) <= new Date()
+    ) {
+      bloodRequest.status = "EXPIRED";
+
+      await bloodRequest.save();
+
+      return res.status(400).json({
+        success: false,
+        message: "Blood request has expired",
+      });
+    }
+
     const [longitude, latitude] = bloodRequest.location.coordinates;
 
     const donors = await findMatchingDonors(
       bloodRequest.bloodGroup,
       latitude,
-      longitude
+      longitude,
     );
 
     return res.status(200).json({
@@ -104,4 +120,79 @@ const getMatchingDonors = async (req, res) => {
   }
 };
 
-module.exports = { createBloodRequest, getMyBloodRequests, getMatchingDonors };
+const updateBloodRequestStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["FULFILLED", "CANCELLED"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status",
+      });
+    }
+
+    const bloodRequest = await BloodRequest.findOne({
+      _id: req.params.requestId,
+      requesterId: req.user._id,
+      status: "OPEN",
+    });
+
+    if (!bloodRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Open blood request not found",
+      });
+    }
+
+    // A request can be fulfilled only after
+    // a donor has accepted the contact request.
+    if (status === "FULFILLED") {
+      const acceptedContact = await ContactRequest.findOne({
+        bloodRequestId: bloodRequest._id,
+        status: "ACCEPTED",
+      });
+
+      if (!acceptedContact) {
+        return res.status(400).json({
+          success: false,
+          message: "Blood request cannot be fulfilled before donor acceptance",
+        });
+      }
+    }
+
+    bloodRequest.status = status;
+
+    await bloodRequest.save();
+
+    if (["FULFILLED", "CANCELLED"].includes(status)) {
+      await ContactRequest.updateMany(
+        {
+          bloodRequestId: bloodRequest._id,
+          status: "PENDING",
+        },
+        {
+          status: "CANCELLED",
+        },
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Blood request ${status.toLowerCase()} successfully`,
+    });
+  } catch (error) {
+    console.error("Update blood request status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+module.exports = {
+  createBloodRequest,
+  getMyBloodRequests,
+  getMatchingDonors,
+  updateBloodRequestStatus,
+};
