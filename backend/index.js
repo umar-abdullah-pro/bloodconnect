@@ -9,6 +9,7 @@ const authRouter = require("./routes/authRouter");
 const donorRouter = require("./routes/donorRouter");
 const donationRouter = require("./routes/donationRouter");
 const bloodRequestRouter = require("./routes/bloodRequestRouter");
+const contactRequestRouter = require("./routes/contactRequestRouter");
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/donor", donorRouter);
 app.use("/api/donation", donationRouter);
 app.use("/api/blood-request", bloodRequestRouter);
+app.use("/api/contact-request", contactRequestRouter);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
