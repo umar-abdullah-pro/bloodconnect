@@ -86,19 +86,11 @@ const createContactRequest = async (req, res) => {
 const getMyContactRequests = async (req, res) => {
   try {
     const requests = await ContactRequest.find({
-      $or: [
-        {
-          donorId: req.user._id,
-          status: "PENDING",
-        },
-        {
-          requesterId: req.user._id,
-          status: "ACCEPTED",
-        },
-      ],
-    })
-      .populate("requesterId", "name")
-      .populate("bloodRequestId", "bloodGroup units urgency");
+  donorId: req.user._id,
+  status: { $in: ["PENDING", "ACCEPTED"] },
+})
+  .populate("requesterId", "name")
+  .populate("bloodRequestId", "bloodGroup units urgency");
 
     return res.status(200).json({
       success: true,
@@ -160,11 +152,8 @@ const getAcceptedContact = async (req, res) => {
   try {
     const contactRequest = await ContactRequest.findOne({
       _id: req.params.requestId,
+      requesterId: req.user._id,
       status: "ACCEPTED",
-      $or: [
-        { requesterId: req.user._id },
-        { donorId: req.user._id },
-      ],
     }).populate("donorId", "name phone");
 
     if (!contactRequest) {
@@ -191,4 +180,31 @@ const getAcceptedContact = async (req, res) => {
   }
 };
 
-module.exports = { createContactRequest, getMyContactRequests, updateContactRequestStatus, getAcceptedContact };
+const getMyContacts = async (req, res) => {
+  try {
+    const contacts = await ContactRequest.find({
+      requesterId: req.user._id,
+      status: "ACCEPTED",
+    }).populate("bloodRequestId", "bloodGroup units urgency");
+
+    return res.status(200).json({
+      success: true,
+      contacts,
+    });
+  } catch (error) {
+    console.error("Get my contacts error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+module.exports = {
+  createContactRequest,
+  getMyContactRequests,
+  updateContactRequestStatus,
+  getAcceptedContact,
+  getMyContacts,
+};
