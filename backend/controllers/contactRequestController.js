@@ -201,10 +201,34 @@ const getMyContacts = async (req, res) => {
   }
 };
 
+const getMySentContactRequests = async (req, res) => {
+  try {
+    const requests = await ContactRequest.find({
+      requesterId: req.user._id,
+      status: { $in: ["PENDING", "ACCEPTED", "REJECTED"] },
+    })
+      .populate("donorId", "name")
+      .populate("bloodRequestId", "bloodGroup units urgency");
+
+    return res.status(200).json({
+      success: true,
+      requests,
+    });
+  } catch (error) {
+    console.error("Get sent contact requests error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
 module.exports = {
   createContactRequest,
   getMyContactRequests,
   updateContactRequestStatus,
+  getMySentContactRequests,
   getAcceptedContact,
   getMyContacts,
 };

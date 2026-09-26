@@ -6,6 +6,7 @@ import {
   FiUsers,
   FiClipboard,
   FiLogOut,
+  FiSend,
 } from "react-icons/fi";
 import { api } from "../services/api";
 
@@ -18,6 +19,7 @@ const Navbar = () => {
     { name: "Donor Profile", path: "/donor-profile", icon: FiUser },
     { name: "Contact Requests", path: "/contact-requests", icon: FiUsers },
     { name: "My Contacts", path: "/my-contacts", icon: FiClipboard },
+    { name: "Sent Contact Requests", path: "/sent-contact-requests", icon: FiSend },
   ];
 
   const handleLogout = async () => {

@@ -13,6 +13,7 @@ import MatchingDonors from "./pages/MatchingDonors";
 import ContactRequests from "./pages/ContactRequest";
 import ContactDetails from "./pages/ContactDetails";
 import MyContacts from "./pages/MyContact";
+import SentContactRequests from "./pages/sentContactRequest";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/donor-profile" element={<DonorProfile />} />
+          <Route path="/sent-contact-requests" element={<SentContactRequests />} />
           <Route
             path="/blood-request/create"
             element={<CreateBloodRequest />}
