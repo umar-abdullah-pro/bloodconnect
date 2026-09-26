@@ -1,6 +1,6 @@
 import { api } from "../services/api";
 
-const BloodRequest = () => {
+const CreateBloodRequest = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -78,4 +78,4 @@ const BloodRequest = () => {
   );
 };
 
-export default BloodRequest;
+export default CreateBloodRequest;

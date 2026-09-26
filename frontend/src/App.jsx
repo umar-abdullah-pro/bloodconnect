@@ -4,7 +4,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import DonorProfile from "./pages/DonorProfile";
-import BloodRequest from "./pages/BloodRequest";
+import BloodRequest from "./pages/CreateBloodRequest";
+import MyRequests from "./pages/MyRequests";
 
 function App() {
   return (
@@ -29,10 +30,18 @@ function App() {
           }
         />
         <Route
-          path="/blood-request"
+          path="/blood-request/create"
           element={
             <ProtectedRoute>
-              <BloodRequest />
+              <CreateBloodRequest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blood-requests"
+          element={
+            <ProtectedRoute>
+              <MyRequests />
             </ProtectedRoute>
           }
         />
