@@ -10,6 +10,19 @@ const MyRequests = () => {
       .catch((error) => console.error(error.message));
   }, []);
 
+  const handleStatus = async (requestId, status) => {
+    try {
+      await api(`/blood-request/${requestId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+
+      window.location.reload();
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
   return (
     <div>
       <h1>My Blood Requests</h1>
@@ -26,13 +39,23 @@ const MyRequests = () => {
             <p>Status: {request.status}</p>
 
             {request.status === "OPEN" && (
-              <button
-                onClick={() =>
-                  (window.location.href = `/blood-requests/${request._id}/matches`)
-                }
-              >
-                Find Donors
-              </button>
+              <>
+                <button
+                  onClick={() =>
+                    (window.location.href = `/blood-requests/${request._id}/matches`)
+                  }
+                >
+                  Find Donors
+                </button>
+
+                <button onClick={() => handleStatus(request._id, "FULFILLED")}>
+                  Mark Fulfilled
+                </button>
+
+                <button onClick={() => handleStatus(request._id, "CANCELLED")}>
+                  Cancel Request
+                </button>
+              </>
             )}
           </div>
         ))
