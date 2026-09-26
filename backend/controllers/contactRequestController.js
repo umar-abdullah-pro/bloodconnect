@@ -86,8 +86,16 @@ const createContactRequest = async (req, res) => {
 const getMyContactRequests = async (req, res) => {
   try {
     const requests = await ContactRequest.find({
-      donorId: req.user._id,
-      status: "PENDING",
+      $or: [
+        {
+          donorId: req.user._id,
+          status: "PENDING",
+        },
+        {
+          requesterId: req.user._id,
+          status: "ACCEPTED",
+        },
+      ],
     })
       .populate("requesterId", "name")
       .populate("bloodRequestId", "bloodGroup units urgency");

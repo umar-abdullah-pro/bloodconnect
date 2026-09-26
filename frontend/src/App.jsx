@@ -7,6 +7,9 @@ import DonorProfile from "./pages/DonorProfile";
 import CreateBloodRequest from "./pages/CreateBloodRequest";
 import MyRequests from "./pages/MyRequests";
 import MatchingDonors from "./pages/MatchingDonors";
+import ContactRequests from "./pages/ContactRequest";
+import ContactDetails from "./pages/ContactDetails";
+import MyContacts from "./pages/MyContact";
 
 function App() {
   return (
@@ -51,6 +54,30 @@ function App() {
           element={
             <ProtectedRoute>
               <MatchingDonors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contact-requests"
+          element={
+            <ProtectedRoute>
+              <ContactRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contact-requests/:requestId/contact"
+          element={
+            <ProtectedRoute>
+              <ContactDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-contacts"
+          element={
+            <ProtectedRoute>
+              <MyContacts />
             </ProtectedRoute>
           }
         />
