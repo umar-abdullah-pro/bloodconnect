@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 
 const Login = () => {
+  const navigate = useNavigate();
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -10,12 +13,12 @@ const Login = () => {
     const password = formData.get("password");
 
     try {
-      const data = await api("/auth/login", {
+      await api("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
-      console.log(data);
+      navigate("/dashboard");
     } catch (error) {
       console.error(error.message);
     }
