@@ -5,7 +5,7 @@ const MyRequests = () => {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    api("/blood-request/me")
+    api("/blood-request/my-requests")
       .then((data) => setRequests(data.requests))
       .catch((error) => console.error(error.message));
   }, []);

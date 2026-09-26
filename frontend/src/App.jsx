@@ -4,8 +4,9 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import DonorProfile from "./pages/DonorProfile";
-import BloodRequest from "./pages/CreateBloodRequest";
+import CreateBloodRequest from "./pages/CreateBloodRequest";
 import MyRequests from "./pages/MyRequests";
+import MatchingDonors from "./pages/MatchingDonors";
 
 function App() {
   return (
@@ -42,6 +43,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blood-requests/:requestId/matches"
+          element={
+            <ProtectedRoute>
+              <MatchingDonors />
             </ProtectedRoute>
           }
         />
