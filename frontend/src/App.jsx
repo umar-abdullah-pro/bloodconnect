@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import DonorProfile from "./pages/DonorProfile";
+import BloodRequest from "./pages/BloodRequest";
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DonorProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blood-request"
+          element={
+            <ProtectedRoute>
+              <BloodRequest />
             </ProtectedRoute>
           }
         />
