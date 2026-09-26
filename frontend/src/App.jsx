@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoutes";
+import Layout from "./components/Layout";
+
 import DonorProfile from "./pages/DonorProfile";
 import CreateBloodRequest from "./pages/CreateBloodRequest";
 import MyRequests from "./pages/MyRequests";
@@ -17,70 +20,32 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
         <Route
-          path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Layout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/donor-profile"
-          element={
-            <ProtectedRoute>
-              <DonorProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/blood-request/create"
-          element={
-            <ProtectedRoute>
-              <CreateBloodRequest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/blood-requests"
-          element={
-            <ProtectedRoute>
-              <MyRequests />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/blood-requests/:requestId/matches"
-          element={
-            <ProtectedRoute>
-              <MatchingDonors />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contact-requests"
-          element={
-            <ProtectedRoute>
-              <ContactRequests />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contact-requests/:requestId/contact"
-          element={
-            <ProtectedRoute>
-              <ContactDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-contacts"
-          element={
-            <ProtectedRoute>
-              <MyContacts />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/donor-profile" element={<DonorProfile />} />
+          <Route
+            path="/blood-request/create"
+            element={<CreateBloodRequest />}
+          />
+          <Route path="/blood-requests" element={<MyRequests />} />
+          <Route
+            path="/blood-requests/:requestId/matches"
+            element={<MatchingDonors />}
+          />
+          <Route path="/contact-requests" element={<ContactRequests />} />
+          <Route
+            path="/contact-requests/:requestId/contact"
+            element={<ContactDetails />}
+          />
+          <Route path="/my-contacts" element={<MyContacts />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
