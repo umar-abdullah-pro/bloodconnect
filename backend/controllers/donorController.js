@@ -2,9 +2,19 @@ const DonorProfile = require("../models/DonorProfile");
 
 const createDonorProfile = async (req, res) => {
   try {
-    const { bloodGroup, latitude, longitude } = req.body;
+    const {
+      bloodGroup,
+      latitude,
+      longitude,
+      locationName,
+    } = req.body;
 
-    if (!bloodGroup || latitude === undefined || longitude === undefined) {
+    if (
+      !bloodGroup ||
+      latitude === undefined ||
+      longitude === undefined ||
+      !locationName
+    ) {
       return res.status(400).json({
         success: false,
         message: "Blood group and location are required",
@@ -22,9 +32,10 @@ const createDonorProfile = async (req, res) => {
       });
     }
 
-    const donorProfile = await DonorProfile.create({
+    await DonorProfile.create({
       userId: req.user._id,
       bloodGroup,
+      locationName,
       location: {
         type: "Point",
         coordinates: [longitude, latitude],

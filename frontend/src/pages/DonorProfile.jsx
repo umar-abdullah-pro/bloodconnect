@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 
+const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
 const DonorProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [location, setLocation] = useState("");
+  const [locationResults, setLocationResults] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -22,31 +29,106 @@ const DonorProfile = () => {
     loadProfile();
   }, []);
 
-  const handleCreate = async (event) => {
+  const searchLocation = async () => {
+    if (!location.trim()) return;
+
+    try {
+      const data = await api("/location/search", {
+        method: "POST",
+        body: JSON.stringify({ location }),
+      });
+
+      setLocationResults(data.results);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported");
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const data = await api("/location/reverse", {
+            method: "POST",
+            body: JSON.stringify({
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            }),
+          });
+
+          const locationName = data.locationName;
+
+          setLocation(locationName);
+
+          setSelectedLocation({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            label: locationName,
+          });
+
+          setLocationResults([]);
+        } catch (error) {
+          console.error(error.message);
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error("Location error:", error.message);
+        setLocationLoading(false);
+      },
+    );
+  };
+
+  const selectLocation = (result) => {
+    setSelectedLocation({
+      latitude: result.lat,
+      longitude: result.lon,
+      label: result.formatted,
+    });
+
+    setLocation(result.formatted);
+    setLocationResults([]);
+  };
+
+  const createProfile = async (event) => {
     event.preventDefault();
 
-    const formData = new FormData(event.target);
+    if (!selectedLocation) {
+      console.error("Please select a location");
+      return;
+    }
 
-    const data = {
-      bloodGroup: formData.get("bloodGroup"),
-      latitude: Number(formData.get("latitude")),
-      longitude: Number(formData.get("longitude")),
-    };
+    const formData = new FormData(event.target);
 
     try {
       await api("/donor", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          bloodGroup: formData.get("bloodGroup"),
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude,
+          locationName: selectedLocation.label,
+        }),
       });
 
       event.target.reset();
+      setLocation("");
+      setSelectedLocation(null);
       loadProfile();
     } catch (error) {
       console.error(error.message);
     }
   };
 
-  const handleAvailability = async () => {
+  const toggleAvailability = async () => {
     try {
       await api("/donor/availability", {
         method: "PATCH",
@@ -64,8 +146,8 @@ const DonorProfile = () => {
   if (loading) {
     return (
       <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-sm text-slate-500">Loading...</p>
+        <div className="mx-auto max-w-4xl text-sm text-slate-500">
+          Loading...
         </div>
       </main>
     );
@@ -91,84 +173,108 @@ const DonorProfile = () => {
           </section>
 
           <form
-            onSubmit={handleCreate}
+            onSubmit={createProfile}
             className="rounded-2xl border border-slate-200 bg-white shadow-sm"
           >
-            <section className="p-6 sm:p-8">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Donor details
-                </h2>
+            <div className="space-y-6 p-6 sm:p-8">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Blood group
+                </label>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  This information is used for donor matching.
-                </p>
-              </div>
+                <select
+                  name="bloodGroup"
+                  defaultValue=""
+                  required
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#b4232c] focus:ring-2 focus:ring-red-100"
+                >
+                  <option value="" disabled>
+                    Select blood group
+                  </option>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Blood group
-                  </label>
-
-                  <select
-                    name="bloodGroup"
-                    defaultValue=""
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#b4232c] focus:ring-2 focus:ring-red-100"
-                  >
-                    <option value="" disabled>
-                      Select blood group
+                  {bloodGroups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
                     </option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                      Latitude
-                    </label>
-
-                    <input
-                      name="latitude"
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 28.6139"
-                      required
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#b4232c] focus:ring-2 focus:ring-red-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                      Longitude
-                    </label>
-
-                    <input
-                      name="longitude"
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 77.2090"
-                      required
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#b4232c] focus:ring-2 focus:ring-red-100"
-                    />
-                  </div>
-                </div>
+                  ))}
+                </select>
               </div>
-            </section>
 
-            <div className="flex justify-end border-t border-slate-100 bg-slate-50/60 p-6 sm:p-8">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Location
+                </label>
+
+                <div className="flex gap-2">
+                  <input
+                    value={location}
+                    onChange={(event) => {
+                      setLocation(event.target.value);
+                      setSelectedLocation(null);
+                    }}
+                    placeholder="Search city, area or address"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#b4232c] focus:ring-2 focus:ring-red-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={searchLocation}
+                    className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    Search
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={useCurrentLocation}
+                  disabled={locationLoading}
+                  className="mt-3 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {locationLoading
+                    ? "Finding your location..."
+                    : "📍 Use my current location"}
+                </button>
+
+                {locationResults.length > 0 && (
+                  <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                    {locationResults.map((result, index) => (
+                      <button
+                        key={`${result.lat}-${result.lon}-${index}`}
+                        type="button"
+                        onClick={() => selectLocation(result)}
+                        className="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-0 hover:bg-slate-50"
+                      >
+                        <p className="text-sm font-medium text-slate-900">
+                          {result.formatted}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {result.city || result.state || result.country}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedLocation && (
+                  <div className="mt-3 rounded-xl bg-emerald-50 p-4">
+                    <p className="text-sm font-medium text-emerald-700">
+                      ✓ Location selected
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-600">
+                      {selectedLocation.label}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 bg-slate-50/60 p-6">
               <button
                 type="submit"
-                className="rounded-xl bg-[#b4232c] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#991b1b]"
+                className="rounded-xl bg-[#b4232c] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#991b1b]"
               >
                 Create Donor Profile
               </button>
@@ -178,8 +284,6 @@ const DonorProfile = () => {
       </main>
     );
   }
-
-  const [longitude, latitude] = profile.location.coordinates;
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
@@ -200,23 +304,21 @@ const DonorProfile = () => {
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-6 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
+            <div>
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-xl font-semibold text-[#b4232c]">
                 {profile.bloodGroup}
               </div>
 
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Blood Donor
-                </h2>
+              <h2 className="mt-4 text-lg font-semibold text-slate-900">
+                Blood Donor
+              </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Your donor information
-                </p>
-              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                Your donor information
+              </p>
             </div>
 
-            <div
+            <span
               className={`w-fit rounded-full px-3 py-1.5 text-sm font-medium ${
                 profile.isAvailable
                   ? "bg-emerald-50 text-emerald-700"
@@ -226,7 +328,7 @@ const DonorProfile = () => {
               {profile.isAvailable
                 ? "Available to donate"
                 : "Currently unavailable"}
-            </div>
+            </span>
           </div>
 
           <div className="grid gap-6 p-6 sm:grid-cols-2">
@@ -256,11 +358,7 @@ const DonorProfile = () => {
               </p>
 
               <p className="mt-2 text-sm text-slate-700">
-                Latitude: {latitude}
-              </p>
-
-              <p className="mt-1 text-sm text-slate-700">
-                Longitude: {longitude}
+                {profile.locationName}
               </p>
             </div>
           </div>
@@ -278,8 +376,8 @@ const DonorProfile = () => {
               </div>
 
               <button
-                onClick={handleAvailability}
-                className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                onClick={toggleAvailability}
+                className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
                   profile.isAvailable
                     ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     : "bg-[#b4232c] text-white hover:bg-[#991b1b]"

@@ -15,6 +15,12 @@ const donorProfileSchema = new mongoose.Schema(
       required: true,
     },
 
+    locationName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     location: {
       type: {
         type: String,
