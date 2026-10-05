@@ -1,36 +1,21 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../services/api";
 import LoadingScreen from "../components/LoadingScreen";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api("/auth/me")
       .then((data) => setUser(data.user))
-      .catch((error) => console.error(error.message));
+      .catch((error) => console.error(error.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await api("/auth/logout", {
-        method: "POST",
-      });
-
-      window.location.href = "/login";
-    } catch (error) {
-      console.error(error.message);
-    }
-  };
-
-  if (!user) {
-    return (
-      <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
-        <div className="mx-auto max-w-7xl">
-          <LoadingScreen/>
-        </div>
-      </main>
-    );
+  if (loading) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -76,8 +61,8 @@ const Dashboard = () => {
           </h2>
 
           <div className="mt-4 grid gap-5 md:grid-cols-3">
-            <a
-              href="/blood-request/create"
+            <Link
+              to="/blood-request/create"
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
               <h3 className="font-semibold text-slate-900">
@@ -91,10 +76,10 @@ const Dashboard = () => {
               <span className="mt-5 inline-block text-sm font-medium text-[#b4232c]">
                 Create request →
               </span>
-            </a>
+            </Link>
 
-            <a
-              href="/blood-requests"
+            <Link
+              to="/blood-requests"
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
               <h3 className="font-semibold text-slate-900">My Requests</h3>
@@ -106,10 +91,10 @@ const Dashboard = () => {
               <span className="mt-5 inline-block text-sm font-medium text-[#b4232c]">
                 View requests →
               </span>
-            </a>
+            </Link>
 
-            <a
-              href="/donor-profile"
+            <Link
+              to="/donor-profile"
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
               <h3 className="font-semibold text-slate-900">Donor Profile</h3>
@@ -121,7 +106,7 @@ const Dashboard = () => {
               <span className="mt-5 inline-block text-sm font-medium text-[#b4232c]">
                 View profile →
               </span>
-            </a>
+            </Link>
           </div>
         </section>
       </div>

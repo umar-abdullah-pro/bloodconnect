@@ -152,13 +152,13 @@ const Navbar = () => {
 
             <div className="my-2 border-t border-slate-100" />
 
-            <button
-              onClick={handleLogout}
+            <Link
+              to="/logout" 
               className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-[#b4232c]"
             >
               <FiLogOut size={18} />
               <span>Sign Out</span>
-            </button>
+            </Link>
           </div>
         )}
       </nav>
