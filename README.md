@@ -676,7 +676,7 @@ Actual donation eligibility, transfusion decisions, and medical compatibility sh
 
 ## 👨‍💻 Author
 
-**Your Name**
+**MOHD UMAR ABDULLAH**
 
 Built with:
 
