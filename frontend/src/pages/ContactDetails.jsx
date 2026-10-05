@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../services/api";
+import LoadingScreen from "../components/LoadingScreen";
 
 const ContactDetails = () => {
   const { requestId } = useParams();
@@ -33,7 +34,7 @@ const ContactDetails = () => {
     return (
       <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
         <div className="mx-auto max-w-2xl">
-          <p className="text-sm text-slate-500">Loading...</p>
+          <LoadingScreen/>
         </div>
       </main>
     );

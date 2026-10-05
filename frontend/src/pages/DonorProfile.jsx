@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import LoadingScreen from "../components/LoadingScreen";
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -147,7 +148,7 @@ const DonorProfile = () => {
     return (
       <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
         <div className="mx-auto max-w-4xl text-sm text-slate-500">
-          Loading...
+          <LoadingScreen/>
         </div>
       </main>
     );

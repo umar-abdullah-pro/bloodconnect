@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { api } from "../services/api";
+import LoadingScreen from "../components/LoadingScreen";
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -12,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (isAuthenticated === null) {
-    return <p>Loading...</p>;
+    return <LoadingScreen/>;
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;

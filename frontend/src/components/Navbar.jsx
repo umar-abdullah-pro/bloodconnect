@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiDroplet,
@@ -15,11 +15,17 @@ import { api } from "../services/api";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const links = [
     { name: "Dashboard", path: "/dashboard", icon: FiHome },
-    { name: "My Requests", path: "/blood-requests", icon: FiDroplet },
+    {
+      name: "My Requests",
+      path: "/blood-requests",
+      icon: FiDroplet,
+      match: ["/blood-requests", "/blood-request"],
+    },
     { name: "Donor Profile", path: "/donor-profile", icon: FiUser },
     { name: "Contact Requests", path: "/contact-requests", icon: FiUsers },
     { name: "My Contacts", path: "/my-contacts", icon: FiClipboard },
@@ -47,7 +53,7 @@ const Navbar = () => {
     <header className="sticky top-0 z-50 bg-transparent">
       <nav className="mx-auto max-w-7xl px-5 py-3">
         {/* Desktop */}
-        <div className="hidden items-center justify-between md:flex">
+        <div className="hidden items-center justify-between lg:flex">
           <NavLink to="/dashboard" className="shrink-0">
             <img
               src="/assets/logo.png"
@@ -64,13 +70,19 @@ const Navbar = () => {
                 <NavLink
                   key={link.path}
                   to={link.path}
-                  className={({ isActive }) =>
-                    `flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
-                      isActive
+                  className={({ isActive }) => {
+                    const active =
+                      isActive ||
+                      link.match?.some((path) =>
+                        location.pathname.startsWith(path),
+                      );
+
+                    return `flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
+                      active
                         ? "bg-red-50 text-[#b4232c]"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`
-                  }
+                    }`;
+                  }}
                 >
                   <Icon size={18} />
                   <span>{link.name}</span>
@@ -89,7 +101,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile */}
-        <div className="flex items-center justify-between md:hidden">
+        <div className="flex items-center justify-between lg:hidden">
           <NavLink to="/dashboard" onClick={closeMenu}>
             <img
               src="/assets/logo.png"
@@ -109,7 +121,7 @@ const Navbar = () => {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:hidden">
+          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:hidden">
             {links.map((link) => {
               const Icon = link.icon;
 
@@ -118,13 +130,19 @@ const Navbar = () => {
                   key={link.path}
                   to={link.path}
                   onClick={closeMenu}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                      isActive
+                  className={({ isActive }) => {
+                    const active =
+                      isActive ||
+                      link.match?.some((path) =>
+                        location.pathname.startsWith(path),
+                      );
+
+                    return `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                      active
                         ? "bg-red-50 text-[#b4232c]"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`
-                  }
+                    }`;
+                  }}
                 >
                   <Icon size={18} />
                   <span>{link.name}</span>
