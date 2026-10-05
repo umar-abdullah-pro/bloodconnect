@@ -1,11 +1,15 @@
 const ContactRequest = require("../models/ContactRequest");
 const BloodRequest = require("../models/BloodRequest");
 const DonorProfile = require("../models/DonorProfile");
+const mongoose = require("mongoose");
+
+const mongoose = require("mongoose");
 
 const createContactRequest = async (req, res) => {
   try {
     const { donorId, bloodRequestId } = req.body;
 
+    // 1. Check required fields
     if (!donorId || !bloodRequestId) {
       return res.status(400).json({
         success: false,
@@ -13,7 +17,18 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // Verify blood request belongs to requester
+    // 2. Validate MongoDB IDs
+    if (
+      !mongoose.isValidObjectId(donorId) ||
+      !mongoose.isValidObjectId(bloodRequestId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid donor ID or blood request ID",
+      });
+    }
+
+    // 3. Verify blood request belongs to requester
     const bloodRequest = await BloodRequest.findOne({
       _id: bloodRequestId,
       requesterId: req.user._id,
@@ -27,7 +42,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // Verify donor exists and is available
+    // 4. Verify donor exists and is available
     const donor = await DonorProfile.findOne({
       _id: donorId,
       isAvailable: true,
@@ -40,7 +55,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // Prevent contacting yourself
+    // 5. Prevent contacting yourself
     if (donor.userId.toString() === req.user._id.toString()) {
       return res.status(400).json({
         success: false,
@@ -48,10 +63,10 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // Prevent duplicate pending request
+    // 6. Prevent duplicate pending request
     const existingRequest = await ContactRequest.findOne({
       requesterId: req.user._id,
-      donorId,
+      donorId: donor.userId,
       bloodRequestId,
       status: "PENDING",
     });
@@ -63,6 +78,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
+    // 7. Create contact request
     await ContactRequest.create({
       requesterId: req.user._id,
       donorId: donor.userId,
@@ -109,7 +125,17 @@ const getMyContactRequests = async (req, res) => {
 const updateContactRequestStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const { requestId } = req.params;
 
+    // 1. Validate request ID
+    if (!mongoose.isValidObjectId(requestId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid contact request ID",
+      });
+    }
+
+    // 2. Validate status
     if (!["ACCEPTED", "REJECTED"].includes(status)) {
       return res.status(400).json({
         success: false,
@@ -117,8 +143,9 @@ const updateContactRequestStatus = async (req, res) => {
       });
     }
 
+    // 3. Find pending request belonging to logged-in donor
     const contactRequest = await ContactRequest.findOne({
-      _id: req.params.requestId,
+      _id: requestId,
       donorId: req.user._id,
       status: "PENDING",
     });
@@ -130,6 +157,7 @@ const updateContactRequestStatus = async (req, res) => {
       });
     }
 
+    // 4. Update status
     contactRequest.status = status;
 
     await contactRequest.save();
@@ -150,8 +178,19 @@ const updateContactRequestStatus = async (req, res) => {
 
 const getAcceptedContact = async (req, res) => {
   try {
+    const { requestId } = req.params;
+
+    // 1. Validate request ID
+    if (!mongoose.isValidObjectId(requestId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid contact request ID",
+      });
+    }
+
+    // 2. Find accepted request belonging to requester
     const contactRequest = await ContactRequest.findOne({
-      _id: req.params.requestId,
+      _id: requestId,
       requesterId: req.user._id,
       status: "ACCEPTED",
     }).populate("donorId", "name phone");
@@ -179,7 +218,6 @@ const getAcceptedContact = async (req, res) => {
     });
   }
 };
-
 const getMyContacts = async (req, res) => {
   try {
     const contacts = await ContactRequest.find({

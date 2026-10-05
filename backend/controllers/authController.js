@@ -14,8 +14,45 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // 2. Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // 2. Validate name
+    if (name.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Name must be at least 2 characters",
+      });
+    }
+
+    // 3. Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
+    // 4. Validate phone
+    if (!/^\d{10}$/.test(phone.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must be 10 digits",
+      });
+    }
+
+    // 5. Validate password
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // 6. Check if user already exists
+    const existingUser = await User.findOne({
+      email: email.trim().toLowerCase(),
+    });
+
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -25,15 +62,15 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create user
+    // 7. Create user
     const user = await User.create({
-      name,
-      email,
-      phone,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
       password: hashedPassword,
     });
 
-    // 5. Send response
+    // 8. Send response
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -47,6 +84,7 @@ const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Something went wrong",
@@ -57,6 +95,8 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // 1. Check required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -64,7 +104,29 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    // 2. Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
+    // 3. Validate password
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // 4. Find user
+    const user = await User.findOne({
+      email: email.trim().toLowerCase(),
+    });
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -72,9 +134,10 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // 5. Check password
     const isPasswordCorrect = await bcrypt.compare(
       password,
-      user.password
+      user.password,
     );
 
     if (!isPasswordCorrect) {
@@ -84,19 +147,30 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Create server-side session
+    // 6. Create server-side session
     req.session.userId = user._id.toString();
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-      },
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+
+        return res.status(500).json({
+          success: false,
+          message: "Session could not be created",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+        },
+      });
     });
   } catch (error) {
     console.error("Login error:", error);

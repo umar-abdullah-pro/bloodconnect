@@ -4,6 +4,7 @@ const createDonation = async (req, res) => {
   try {
     const { donationDate, bloodBank } = req.body;
 
+    // 1. Check required field
     if (!donationDate) {
       return res.status(400).json({
         success: false,
@@ -11,10 +12,29 @@ const createDonation = async (req, res) => {
       });
     }
 
-    const donation = await Donation.create({
+    // 2. Validate donation date
+    const date = new Date(donationDate);
+
+    if (Number.isNaN(date.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid donation date",
+      });
+    }
+
+    // 3. Prevent future donation dates
+    if (date > new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Donation date cannot be in the future",
+      });
+    }
+
+    // 4. Create donation
+    await Donation.create({
       donorId: req.user._id,
-      donationDate,
-      bloodBank,
+      donationDate: date,
+      bloodBank: bloodBank?.trim(),
     });
 
     return res.status(201).json({
@@ -30,7 +50,6 @@ const createDonation = async (req, res) => {
     });
   }
 };
-
 const getMyDonations = async (req, res) => {
   try {
     const donations = await Donation.find({

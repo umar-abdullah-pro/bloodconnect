@@ -1,16 +1,24 @@
 const BloodRequest = require("../models/BloodRequest");
 const ContactRequest = require("../models/ContactRequest");
+const mongoose = require("mongoose");
 
 const { findMatchingDonors } = require("../services/matchingService");
 
 const createBloodRequest = async (req, res) => {
   try {
-    const { bloodGroup, units, latitude, longitude, urgency, requiredBy } =
-      req.body;
+    const {
+      bloodGroup,
+      units,
+      latitude,
+      longitude,
+      urgency,
+      requiredBy,
+    } = req.body;
 
+    // 1. Required fields
     if (
       !bloodGroup ||
-      !units ||
+      units === undefined ||
       latitude === undefined ||
       longitude === undefined
     ) {
@@ -20,16 +28,100 @@ const createBloodRequest = async (req, res) => {
       });
     }
 
-    const bloodRequest = await BloodRequest.create({
+    // 2. Validate blood group
+    const validBloodGroups = [
+      "A+",
+      "A-",
+      "B+",
+      "B-",
+      "AB+",
+      "AB-",
+      "O+",
+      "O-",
+    ];
+
+    if (!validBloodGroups.includes(bloodGroup)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blood group",
+      });
+    }
+
+    // 3. Validate units
+    const requestUnits = Number(units);
+
+    if (!Number.isInteger(requestUnits) || requestUnits < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Units must be a positive integer",
+      });
+    }
+
+    // 4. Validate coordinates
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates",
+      });
+    }
+
+    // 5. Validate urgency
+    const validUrgencies = [
+      "LOW",
+      "MEDIUM",
+      "HIGH",
+      "EMERGENCY",
+    ];
+
+    if (urgency && !validUrgencies.includes(urgency)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid urgency",
+      });
+    }
+
+    // 6. Validate requiredBy
+    let requestRequiredBy;
+
+    if (requiredBy) {
+      requestRequiredBy = new Date(requiredBy);
+
+      if (Number.isNaN(requestRequiredBy.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid required date",
+        });
+      }
+
+      if (requestRequiredBy <= new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: "Required date must be in the future",
+        });
+      }
+    }
+
+    // 7. Create blood request
+    await BloodRequest.create({
       requesterId: req.user._id,
       bloodGroup,
-      units,
+      units: requestUnits,
       location: {
         type: "Point",
-        coordinates: [longitude, latitude],
+        coordinates: [lng, lat],
       },
       urgency,
-      requiredBy,
+      requiredBy: requestRequiredBy,
     });
 
     return res.status(201).json({
@@ -123,7 +215,17 @@ const getMatchingDonors = async (req, res) => {
 const updateBloodRequestStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const { requestId } = req.params;
 
+    // 1. Validate request ID
+    if (!mongoose.isValidObjectId(requestId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blood request ID",
+      });
+    }
+
+    // 2. Validate status
     if (!["FULFILLED", "CANCELLED"].includes(status)) {
       return res.status(400).json({
         success: false,
@@ -131,8 +233,9 @@ const updateBloodRequestStatus = async (req, res) => {
       });
     }
 
+    // 3. Find user's open request
     const bloodRequest = await BloodRequest.findOne({
-      _id: req.params.requestId,
+      _id: requestId,
       requesterId: req.user._id,
       status: "OPEN",
     });
@@ -144,8 +247,7 @@ const updateBloodRequestStatus = async (req, res) => {
       });
     }
 
-    // A request can be fulfilled only after
-    // a donor has accepted the contact request.
+    // 4. Fulfil only after donor acceptance
     if (status === "FULFILLED") {
       const acceptedContact = await ContactRequest.findOne({
         bloodRequestId: bloodRequest._id,
@@ -155,26 +257,27 @@ const updateBloodRequestStatus = async (req, res) => {
       if (!acceptedContact) {
         return res.status(400).json({
           success: false,
-          message: "Blood request cannot be fulfilled before donor acceptance",
+          message:
+            "Blood request cannot be fulfilled before donor acceptance",
         });
       }
     }
 
+    // 5. Update status
     bloodRequest.status = status;
 
     await bloodRequest.save();
 
-    if (["FULFILLED", "CANCELLED"].includes(status)) {
-      await ContactRequest.updateMany(
-        {
-          bloodRequestId: bloodRequest._id,
-          status: "PENDING",
-        },
-        {
-          status: "CANCELLED",
-        },
-      );
-    }
+    // 6. Cancel remaining pending contact requests
+    await ContactRequest.updateMany(
+      {
+        bloodRequestId: bloodRequest._id,
+        status: "PENDING",
+      },
+      {
+        status: "CANCELLED",
+      },
+    );
 
     return res.status(200).json({
       success: true,

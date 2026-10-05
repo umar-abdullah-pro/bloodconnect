@@ -9,6 +9,7 @@ const createDonorProfile = async (req, res) => {
       locationName,
     } = req.body;
 
+    // 1. Check required fields
     if (
       !bloodGroup ||
       latitude === undefined ||
@@ -21,6 +22,52 @@ const createDonorProfile = async (req, res) => {
       });
     }
 
+    // 2. Validate blood group
+    const validBloodGroups = [
+      "A+",
+      "A-",
+      "B+",
+      "B-",
+      "AB+",
+      "AB-",
+      "O+",
+      "O-",
+    ];
+
+    if (!validBloodGroups.includes(bloodGroup)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blood group",
+      });
+    }
+
+    // 3. Validate coordinates
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates",
+      });
+    }
+
+    // 4. Validate location name
+    if (locationName.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Location name must be at least 2 characters",
+      });
+    }
+
+    // 5. Check existing profile
     const existingProfile = await DonorProfile.findOne({
       userId: req.user._id,
     });
@@ -32,13 +79,14 @@ const createDonorProfile = async (req, res) => {
       });
     }
 
+    // 6. Create profile
     await DonorProfile.create({
       userId: req.user._id,
       bloodGroup,
-      locationName,
+      locationName: locationName.trim(),
       location: {
         type: "Point",
-        coordinates: [longitude, latitude],
+        coordinates: [lng, lat],
       },
     });
 
