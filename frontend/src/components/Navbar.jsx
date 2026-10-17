@@ -27,14 +27,49 @@ const Navbar = () => {
       match: ["/blood-requests", "/blood-request"],
     },
     { name: "Donor Profile", path: "/donor-profile", icon: FiUser },
-    { name: "Contact Requests", path: "/contact-requests", icon: FiUsers },
-    { name: "My Contacts", path: "/my-contacts", icon: FiClipboard },
+    {
+      name: "Contact Requests",
+      path: "/contact-requests",
+      icon: FiUsers,
+      match: ["/contact-requests"],
+      exclude: ["/contact-requests/:requestId/contact"],
+    },
+    {
+      name: "My Contacts",
+      path: "/my-contacts",
+      icon: FiClipboard,
+      match: ["/contact-requests/:requestId/contact"],
+    },
     {
       name: "Sent Contact Requests",
       path: "/sent-contact-requests",
       icon: FiSend,
     },
   ];
+
+  const isLinkActive = (link, isActive) => {
+    const pathname = location.pathname;
+
+    const matches = link.match?.some((path) => {
+      if (path.includes(":requestId")) {
+        const pattern = new RegExp(
+          "^" + path.replace(":requestId", "[^/]+") + "$",
+        );
+        return pattern.test(pathname);
+      }
+
+      return pathname.startsWith(path);
+    });
+
+    const excluded = link.exclude?.some((path) => {
+      const pattern = new RegExp(
+        "^" + path.replace(":requestId", "[^/]+") + "$",
+      );
+      return pattern.test(pathname);
+    });
+
+    return !excluded && (isActive || matches);
+  };
 
   const handleLogout = async () => {
     try {
@@ -50,7 +85,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-transparent">
+    <header className="sticky top-0 z-50 bg-slate-50">
       <nav className="mx-auto max-w-7xl px-5 py-3">
         {/* Desktop */}
         <div className="hidden items-center justify-between lg:flex">
@@ -71,11 +106,7 @@ const Navbar = () => {
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) => {
-                    const active =
-                      isActive ||
-                      link.match?.some((path) =>
-                        location.pathname.startsWith(path),
-                      );
+                    const active = isLinkActive(link, isActive);
 
                     return `flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
                       active
@@ -131,11 +162,7 @@ const Navbar = () => {
                   to={link.path}
                   onClick={closeMenu}
                   className={({ isActive }) => {
-                    const active =
-                      isActive ||
-                      link.match?.some((path) =>
-                        location.pathname.startsWith(path),
-                      );
+                    const active = isLinkActive(link, isActive);
 
                     return `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
                       active
@@ -151,14 +178,13 @@ const Navbar = () => {
             })}
 
             <div className="my-2 border-t border-slate-100" />
-
-            <Link
-              to="/logout" 
+            <button
+              onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-[#b4232c]"
             >
               <FiLogOut size={18} />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         )}
       </nav>

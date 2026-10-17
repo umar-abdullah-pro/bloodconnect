@@ -6,14 +6,8 @@ const { findMatchingDonors } = require("../services/matchingService");
 
 const createBloodRequest = async (req, res) => {
   try {
-    const {
-      bloodGroup,
-      units,
-      latitude,
-      longitude,
-      urgency,
-      requiredBy,
-    } = req.body;
+    const { bloodGroup, units, latitude, longitude, urgency, requiredBy } =
+      req.body;
 
     // 1. Required fields
     if (
@@ -29,16 +23,7 @@ const createBloodRequest = async (req, res) => {
     }
 
     // 2. Validate blood group
-    const validBloodGroups = [
-      "A+",
-      "A-",
-      "B+",
-      "B-",
-      "AB+",
-      "AB-",
-      "O+",
-      "O-",
-    ];
+    const validBloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
     if (!validBloodGroups.includes(bloodGroup)) {
       return res.status(400).json({
@@ -76,12 +61,7 @@ const createBloodRequest = async (req, res) => {
     }
 
     // 5. Validate urgency
-    const validUrgencies = [
-      "LOW",
-      "MEDIUM",
-      "HIGH",
-      "EMERGENCY",
-    ];
+    const validUrgencies = ["LOW", "MEDIUM", "HIGH", "EMERGENCY"];
 
     if (urgency && !validUrgencies.includes(urgency)) {
       return res.status(400).json({
@@ -196,6 +176,7 @@ const getMatchingDonors = async (req, res) => {
       bloodRequest.bloodGroup,
       latitude,
       longitude,
+      req.user._id,
     );
 
     return res.status(200).json({
@@ -257,8 +238,7 @@ const updateBloodRequestStatus = async (req, res) => {
       if (!acceptedContact) {
         return res.status(400).json({
           success: false,
-          message:
-            "Blood request cannot be fulfilled before donor acceptance",
+          message: "Blood request cannot be fulfilled before donor acceptance",
         });
       }
     }

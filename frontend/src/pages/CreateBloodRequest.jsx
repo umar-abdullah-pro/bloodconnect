@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import { FiArrowLeft } from "react-icons/fi";
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const urgencyLevels = ["LOW", "MEDIUM", "HIGH", "EMERGENCY"];
 
 const CreateBloodRequest = () => {
+  const navigate = useNavigate();
   const [location, setLocation] = useState("");
   const [locationResults, setLocationResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -102,18 +105,22 @@ const CreateBloodRequest = () => {
         body: JSON.stringify(data),
       });
 
-      event.target.reset();
-      setLocation("");
-      setSelectedLocation(null);
-      setLocationResults([]);
+      navigate("/blood-requests");
     } catch (error) {
       console.error(error.message);
     }
   };
 
   return (
-    <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 pt-8 pb-10">
       <div className="mx-auto max-w-3xl">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-5 inline-flex items-center gap-2 rounded-lg text-sm font-medium text-slate-600 transition hover:text-[#b4232c]"
+        >
+          <FiArrowLeft size={18} />
+        </button>
         <section className="mb-8">
           <p className="mb-2 text-sm font-medium text-[#b4232c]">
             Blood request

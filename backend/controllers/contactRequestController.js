@@ -1,8 +1,7 @@
 const ContactRequest = require("../models/ContactRequest");
 const BloodRequest = require("../models/BloodRequest");
 const DonorProfile = require("../models/DonorProfile");
-const mongoose = require("mongoose");
-
+const { isBloodCompatible } = require("../utils/bloodCompatibility");
 const mongoose = require("mongoose");
 
 const createContactRequest = async (req, res) => {
@@ -28,12 +27,33 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 3. Verify blood request belongs to requester
     const bloodRequest = await BloodRequest.findOne({
       _id: bloodRequestId,
       requesterId: req.user._id,
       status: "OPEN",
     });
+
+    // 3. Verify blood request belongs to requester
+    if (!bloodRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Blood request not found",
+      });
+    }
+
+    // 4. Prevent contact requests for expired blood requests
+    if (
+      bloodRequest.requiredBy &&
+      new Date(bloodRequest.requiredBy) <= new Date()
+    ) {
+      bloodRequest.status = "EXPIRED";
+      await bloodRequest.save();
+
+      return res.status(400).json({
+        success: false,
+        message: "Blood request has expired",
+      });
+    }
 
     if (!bloodRequest) {
       return res.status(404).json({
@@ -42,7 +62,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 4. Verify donor exists and is available
+    // 5. Verify donor exists and is available
     const donor = await DonorProfile.findOne({
       _id: donorId,
       isAvailable: true,
@@ -55,7 +75,15 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 5. Prevent contacting yourself
+    // 6. Verify blood compatibility
+    if (!isBloodCompatible(donor.bloodGroup, bloodRequest.bloodGroup)) {
+      return res.status(400).json({
+        success: false,
+        message: "Donor is not compatible with this blood request",
+      });
+    }
+
+    // 8. Prevent contacting yourself
     if (donor.userId.toString() === req.user._id.toString()) {
       return res.status(400).json({
         success: false,
@@ -63,7 +91,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 6. Prevent duplicate pending request
+    // 9. Prevent duplicate pending request
     const existingRequest = await ContactRequest.findOne({
       requesterId: req.user._id,
       donorId: donor.userId,
@@ -78,7 +106,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 7. Create contact request
+    // 10. Create contact request
     await ContactRequest.create({
       requesterId: req.user._id,
       donorId: donor.userId,
@@ -102,11 +130,11 @@ const createContactRequest = async (req, res) => {
 const getMyContactRequests = async (req, res) => {
   try {
     const requests = await ContactRequest.find({
-  donorId: req.user._id,
-  status: { $in: ["PENDING", "ACCEPTED"] },
-})
-  .populate("requesterId", "name")
-  .populate("bloodRequestId", "bloodGroup units urgency");
+      donorId: req.user._id,
+      status: { $in: ["PENDING", "ACCEPTED"] },
+    })
+      .populate("requesterId", "name")
+      .populate("bloodRequestId", "bloodGroup units urgency");
 
     return res.status(200).json({
       success: true,
@@ -218,6 +246,7 @@ const getAcceptedContact = async (req, res) => {
     });
   }
 };
+
 const getMyContacts = async (req, res) => {
   try {
     const contacts = await ContactRequest.find({

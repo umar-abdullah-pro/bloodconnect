@@ -7,6 +7,7 @@ const findMatchingDonors = async (
   bloodGroup,
   latitude,
   longitude,
+  requesterId,
   maxDistance = 10000,
 ) => {
   const donors = await DonorProfile.aggregate([
@@ -21,6 +22,7 @@ const findMatchingDonors = async (
         spherical: true,
         query: {
           isAvailable: true,
+          userId: { $ne: requesterId },
         },
       },
     },
@@ -39,24 +41,28 @@ const findMatchingDonors = async (
       });
 
       const distanceInKm = donor.distanceInMeters / 1000;
-      const latestDonationDate = latestDonation?.donationDate || null;
+
       const priorityScore = calculateDonorPriority({
         distanceInKm,
-        latestDonationDate,
+        latestDonationDate: latestDonation?.donationDate || null,
       });
 
       return {
         donorId: donor._id,
         bloodGroup: donor.bloodGroup,
-        isAvailable: donor.isAvailable,
         distanceInKm: Number(distanceInKm.toFixed(2)),
-        latestDonationDate,
         priorityScore,
       };
     }),
   );
 
-  return donorsWithPriority.sort((a, b) => b.priorityScore - a.priorityScore);
+  donorsWithPriority.sort((a, b) => b.priorityScore - a.priorityScore);
+
+  return donorsWithPriority.map(({ donorId, bloodGroup, distanceInKm }) => ({
+    donorId,
+    bloodGroup,
+    distanceInKm,
+  }));
 };
 
 module.exports = { findMatchingDonors };

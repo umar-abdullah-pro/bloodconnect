@@ -139,16 +139,6 @@ const MyRequests = () => {
                 <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                      Location
-                    </p>
-                    <p className="mt-1 text-sm text-slate-700">
-                      {request.location.coordinates[1]},{" "}
-                      {request.location.coordinates[0]}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                       Required by
                     </p>
                     <p className="mt-1 text-sm text-slate-700">

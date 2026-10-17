@@ -97,13 +97,6 @@ const MatchingDonors = () => {
                         {donor.distanceInKm} km
                       </p>
                     </div>
-
-                    <div className="rounded-xl bg-slate-50 p-4">
-                      <p className="text-xs text-slate-400">Priority</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {donor.priorityScore}
-                      </p>
-                    </div>
                   </div>
 
                   <div className="mt-4 rounded-xl border border-slate-100 p-4">

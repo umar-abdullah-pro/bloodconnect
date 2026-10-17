@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import { FiArrowLeft } from "react-icons/fi";
 import LoadingScreen from "../components/LoadingScreen";
 
 const ContactDetails = () => {
+  const navigate = useNavigate();
   const { requestId } = useParams();
   const [contact, setContact] = useState(null);
   const [error, setError] = useState("");
@@ -34,7 +36,7 @@ const ContactDetails = () => {
     return (
       <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
         <div className="mx-auto max-w-2xl">
-          <LoadingScreen/>
+          <LoadingScreen />
         </div>
       </main>
     );
@@ -43,6 +45,13 @@ const ContactDetails = () => {
   return (
     <main className="min-h-[calc(100vh-73px)] bg-slate-50 px-5 py-10">
       <div className="mx-auto max-w-2xl">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-5 inline-flex items-center gap-2 rounded-lg text-sm font-medium text-slate-600 transition hover:text-[#b4232c]"
+        >
+          <FiArrowLeft size={18} />
+        </button>
         <section className="mb-8">
           <p className="mb-2 text-sm font-medium text-[#b4232c]">
             Donor connection

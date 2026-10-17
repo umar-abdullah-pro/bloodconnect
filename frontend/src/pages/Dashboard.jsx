@@ -47,11 +47,6 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">Phone</p>
             <p className="mt-2 font-medium text-slate-900">{user.phone}</p>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Account Role</p>
-            <p className="mt-2 font-medium text-slate-900">{user.role}</p>
-          </div>
         </section>
 
         {/* Quick Actions */}
