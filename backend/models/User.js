@@ -19,13 +19,23 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
+      unique: true,
       trim: true,
     },
 
     password: {
       type: String,
-      required: true,
-      minlength: 8,
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters long"],
+      validate: {
+        validator: function (password) {
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/.test(
+            password,
+          );
+        },
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character, with at least 8 characters and no whitespace.",
+      },
     },
 
     role: {
@@ -36,7 +46,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const User = mongoose.model("User", userSchema);

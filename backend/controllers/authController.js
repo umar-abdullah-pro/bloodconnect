@@ -2,20 +2,34 @@ const bcrypt = require("bcryptjs");
 
 const User = require("../models/User");
 
+
 const registerUser = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
     // 1. Check required fields
-    if (!name || !email || !phone || !password) {
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof phone !== "string" ||
+      typeof password !== "string" ||
+      !name.trim() ||
+      !email.trim() ||
+      !phone.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+
     // 2. Validate name
-    if (name.trim().length < 2) {
+    if (normalizedName.length < 2) {
       return res.status(400).json({
         success: false,
         message: "Name must be at least 2 characters",
@@ -25,7 +39,7 @@ const registerUser = async (req, res) => {
     // 3. Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: "Invalid email address",
@@ -33,24 +47,28 @@ const registerUser = async (req, res) => {
     }
 
     // 4. Validate phone
-    if (!/^\d{10}$/.test(phone.trim())) {
+    if (!/^\d{10}$/.test(normalizedPhone)) {
       return res.status(400).json({
         success: false,
         message: "Phone number must be 10 digits",
       });
     }
 
-    // 5. Validate password
-    if (password.length < 6) {
+    // 5. Validate password strength
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/;
+
+    if (!passwordRegex.test(password)) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters",
+        message:
+          "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character, with no whitespace.",
       });
     }
 
-    // 6. Check if user already exists
+    // 6. Check for existing user
     const existingUser = await User.findOne({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
     });
 
     if (existingUser) {
@@ -60,17 +78,18 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // 7. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 7. Create user
+    // 8. Create user
     const user = await User.create({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
+      name: normalizedName,
+      email: normalizedEmail,
+      phone: normalizedPhone,
       password: hashedPassword,
     });
 
-    // 8. Send response
+    // 9. Send response
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -85,6 +104,22 @@ const registerUser = async (req, res) => {
   } catch (error) {
     console.error("Registration error:", error);
 
+    // Handle Mongoose validation errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Handle duplicate-key race condition
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "User with this email already exists",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Something went wrong",
@@ -92,67 +127,65 @@ const registerUser = async (req, res) => {
   }
 };
 
+
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Check required fields
-    if (!email || !password) {
+    // 1. Validate required fields and types
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
 
-    // 2. Validate email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 2. Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: "Invalid email address",
       });
     }
 
-    // 3. Validate password
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
-
-    // 4. Find user
+    // 3. Find user
     const user = await User.findOne({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
     });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid Credentials",
+        message: "Invalid email or password",
       });
     }
 
-    // 5. Check password
+    // 4. Verify password
     const isPasswordCorrect = await bcrypt.compare(
       password,
-      user.password,
+      user.password
     );
 
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Invalid Credentials",
+        message: "Invalid email or password",
       });
     }
 
-    // 6. Create server-side session
-    req.session.userId = user._id.toString();
-
-    req.session.save((err) => {
+    // 5. Regenerate session to prevent session fixation
+    req.session.regenerate((err) => {
       if (err) {
-        console.error("Session save error:", err);
+        console.error("Session regeneration error:", err);
 
         return res.status(500).json({
           success: false,
@@ -160,16 +193,30 @@ const loginUser = async (req, res) => {
         });
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-        },
+      req.session.userId = user._id.toString();
+
+      // 6. Save session before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+
+          return res.status(500).json({
+            success: false,
+            message: "Session could not be created",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Login successful",
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+          },
+        });
       });
     });
   } catch (error) {
@@ -177,10 +224,11 @@ const loginUser = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error.",
+      message: "Internal Server Error",
     });
   }
 };
+
 
 const getCurrentUser = async (req, res) => {
   return res.status(200).json({
