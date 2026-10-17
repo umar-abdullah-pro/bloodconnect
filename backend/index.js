@@ -73,7 +73,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 const startServer = async () => {
   await connectDB();
