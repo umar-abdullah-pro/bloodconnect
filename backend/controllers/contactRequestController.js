@@ -100,22 +100,41 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 10. Prevent duplicate pending requests
+    // 10. Prevent new requests if this donor has
+    // already accepted a request for this blood request
+    const acceptedRequest = await ContactRequest.findOne({
+      donorId: donor.userId,
+      bloodRequestId: bloodRequest._id,
+      status: "ACCEPTED",
+    });
+
+    if (acceptedRequest) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This donor has already accepted a contact request for this blood request",
+      });
+    }
+
+    // 11. Prevent duplicate pending or accepted requests
     const existingRequest = await ContactRequest.findOne({
       requesterId: req.user._id,
       donorId: donor.userId,
       bloodRequestId: bloodRequest._id,
-      status: "PENDING",
+      status: { $in: ["PENDING", "ACCEPTED"] },
     });
 
     if (existingRequest) {
       return res.status(409).json({
         success: false,
-        message: "Contact request already sent",
+        message:
+          existingRequest.status === "ACCEPTED"
+            ? "This contact request has already been accepted"
+            : "Contact request already sent",
       });
     }
 
-    // 11. Create contact request
+    // 12. Create contact request
     await ContactRequest.create({
       requesterId: req.user._id,
       donorId: donor.userId,
