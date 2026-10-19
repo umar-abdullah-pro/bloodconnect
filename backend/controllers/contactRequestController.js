@@ -4,11 +4,20 @@ const DonorProfile = require("../models/DonorProfile");
 const { isBloodCompatible } = require("../utils/bloodCompatibility");
 const mongoose = require("mongoose");
 
+
 const createContactRequest = async (req, res) => {
   try {
+    // 1. Verify authenticated user
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     const { donorId, bloodRequestId } = req.body;
 
-    // 1. Check required fields
+    // 2. Validate required fields
     if (!donorId || !bloodRequestId) {
       return res.status(400).json({
         success: false,
@@ -16,7 +25,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 2. Validate MongoDB IDs
+    // 3. Validate MongoDB IDs
     if (
       !mongoose.isValidObjectId(donorId) ||
       !mongoose.isValidObjectId(bloodRequestId)
@@ -27,13 +36,12 @@ const createContactRequest = async (req, res) => {
       });
     }
 
+    // 4. Find blood request owned by the logged-in user
     const bloodRequest = await BloodRequest.findOne({
       _id: bloodRequestId,
       requesterId: req.user._id,
-      status: "OPEN",
     });
 
-    // 3. Verify blood request belongs to requester
     if (!bloodRequest) {
       return res.status(404).json({
         success: false,
@@ -41,7 +49,15 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 4. Prevent contact requests for expired blood requests
+    // 5. Check request status
+    if (bloodRequest.status !== "OPEN") {
+      return res.status(400).json({
+        success: false,
+        message: "Blood request is not open",
+      });
+    }
+
+    // 6. Check expiry
     if (
       bloodRequest.requiredBy &&
       new Date(bloodRequest.requiredBy) <= new Date()
@@ -55,14 +71,7 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    if (!bloodRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Blood request not found",
-      });
-    }
-
-    // 5. Verify donor exists and is available
+    // 7. Find available donor
     const donor = await DonorProfile.findOne({
       _id: donorId,
       isAvailable: true,
@@ -75,14 +84,6 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 6. Verify blood compatibility
-    if (!isBloodCompatible(donor.bloodGroup, bloodRequest.bloodGroup)) {
-      return res.status(400).json({
-        success: false,
-        message: "Donor is not compatible with this blood request",
-      });
-    }
-
     // 8. Prevent contacting yourself
     if (donor.userId.toString() === req.user._id.toString()) {
       return res.status(400).json({
@@ -91,11 +92,19 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 9. Prevent duplicate pending request
+    // 9. Verify blood compatibility
+    if (!isBloodCompatible(donor.bloodGroup, bloodRequest.bloodGroup)) {
+      return res.status(400).json({
+        success: false,
+        message: "Donor is not compatible with this blood request",
+      });
+    }
+
+    // 10. Prevent duplicate pending requests
     const existingRequest = await ContactRequest.findOne({
       requesterId: req.user._id,
       donorId: donor.userId,
-      bloodRequestId,
+      bloodRequestId: bloodRequest._id,
       status: "PENDING",
     });
 
@@ -106,11 +115,12 @@ const createContactRequest = async (req, res) => {
       });
     }
 
-    // 10. Create contact request
+    // 11. Create contact request
     await ContactRequest.create({
       requesterId: req.user._id,
       donorId: donor.userId,
-      bloodRequestId,
+      bloodRequestId: bloodRequest._id,
+      status: "PENDING",
     });
 
     return res.status(201).json({
@@ -118,6 +128,14 @@ const createContactRequest = async (req, res) => {
       message: "Contact request sent successfully",
     });
   } catch (error) {
+    // Handle duplicate-key errors if a matching unique index exists
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Contact request already exists",
+      });
+    }
+
     console.error("Create contact request error:", error);
 
     return res.status(500).json({
